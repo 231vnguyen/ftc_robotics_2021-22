@@ -1,22 +1,24 @@
+package Archive;
+
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-//@Disabled
-@TeleOp(name = "TeleOpBlueBot", group = "Testing")
+@Disabled
+@TeleOp(name = "TeleOpBlueBotSlideTest", group = "Testing")
 
 
 
-public class TeleOpModeBlue extends LinearOpMode {
+public class TeleOpModeBlueSlide extends LinearOpMode {
 
 
     //static values
@@ -25,7 +27,7 @@ public class TeleOpModeBlue extends LinearOpMode {
     private final double wheelDiameter = 3.77953;
     private final double botRotationSpeed = 1.1; //to match rotation with driving
     private final double wheelMaxVelocity = 1;
-    private final double maxSlideTicks = 384.5 * 2.8;
+    private final double maxrightSlideTicks = 384.5 * 2;
     private final double maxSlideVelocity = wheelMotorRPM * wheelMotorTicks / 60;
     private final double spinnyTicks = 537.7;
     private final double maxSpinnyVelocity = 312 * spinnyTicks / 60;
@@ -35,8 +37,8 @@ public class TeleOpModeBlue extends LinearOpMode {
     private final double intakeUp = .3;
     private final double intakeDrop = .65;
 
-    private final double down = 0;
-    private final double forward = .8;
+    private final double down = .3;
+    private final double forward = 8;
 
 
 
@@ -87,8 +89,8 @@ public class TeleOpModeBlue extends LinearOpMode {
 
     private Servo stick;
     
-    private DcMotorEx rightSlide;
-    private DcMotorEx leftSlide;
+    private DcMotor rightSlide;
+    private DcMotor leftSlide;
 
     private DcMotor tubeys;
 
@@ -103,15 +105,15 @@ public class TeleOpModeBlue extends LinearOpMode {
 
 
     //create arm variables
-    
+    private final double maxSlideTicks = 360;
 
     //arm position values
     private int slidePosition = 0;
     private final double[] slideValues = {
-            maxSlideTicks * 1, //top level
-            maxSlideTicks * .55, //shared
-            maxSlideTicks * .3, //low level
-            maxSlideTicks * .6, //middle level
+            maxrightSlideTicks * 1, //top level
+            maxrightSlideTicks * .55, //shared
+            maxrightSlideTicks * .3, //low level
+            maxrightSlideTicks * .6, //middle level
 
     };
     String[] slideLevel = {"Top level", "Lowest level", "Middle level", "shared shipping"};
@@ -135,7 +137,6 @@ public class TeleOpModeBlue extends LinearOpMode {
 
     private final double stickUp = .4;
     private final double stickDown = 0;
-    private final double stickMiddle = .1;
 
     //toggle booleans
     private boolean slideMoving = false;
@@ -159,8 +160,8 @@ public class TeleOpModeBlue extends LinearOpMode {
         HORIZONTAL_ROTATION_FORWARD,
         DROP_FREIGHT,
         SLIDE_DOWN,
-        MIDDLE_LEVEL,
-        SHARED
+        SHARED_RIGHT,
+        SHARED_LEFT
     }
 
     AutoIntakeState autointakeState = AutoIntakeState.DEFAULT_POSITION;
@@ -173,8 +174,7 @@ public class TeleOpModeBlue extends LinearOpMode {
         DROP_FREIGHT, //automatically after horizontal rotation
         SLIDE_DOWN, //automatically after dropping freight, rotate intake to default, LiftState liftState = LiftState.DEFAULT_POSITION;
         SHARED_RIGHT,
-        SHARED_lEFT,
-        MIDDLE_LEVEL
+        SHARED_lEFT
     }
 
     LiftState liftState = LiftState.DEFAULT_POSITION;
@@ -332,16 +332,16 @@ public class TeleOpModeBlue extends LinearOpMode {
 //        spinny.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //armMotor encoders
-        rightSlide = hardwareMap.get(DcMotorEx.class, "rightSlide");
+        rightSlide = hardwareMap.get(DcMotor.class, "rightSlide");
         rightSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightSlide.setTargetPosition(0);
-        rightSlide.setVelocity(0);
+        rightSlide.setPower(0);
         rightSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        leftSlide = hardwareMap.get(DcMotorEx.class, "leftSlide");
+        leftSlide = hardwareMap.get(DcMotor.class, "leftSlide");
         leftSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftSlide.setTargetPosition(0);
-        leftSlide.setVelocity(0);
+        leftSlide.setPower(0);
         leftSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
@@ -353,8 +353,8 @@ public class TeleOpModeBlue extends LinearOpMode {
         waitForStart();
 
 
-        rightSlide.setVelocity(maxSlideVelocity);
-        leftSlide.setVelocity(maxSlideVelocity);
+        rightSlide.setPower(0);
+        leftSlide.setPower(0);
 
         //rotateIntakeServo.setPosition(.5);
         /*leftDropdown.setPosition(.1);
@@ -376,7 +376,7 @@ public class TeleOpModeBlue extends LinearOpMode {
 
             //event methods
             changeGears();
-
+            dropdownControl();
 
 
 
@@ -458,12 +458,12 @@ public class TeleOpModeBlue extends LinearOpMode {
             switch (autointakeState) {
                 case DEFAULT_POSITION:
 
-                    rightSlide.setVelocity(maxSlideVelocity);
-                    leftSlide.setVelocity(maxSlideVelocity);
+                    rightSlide.setPower(1);
+                    leftSlide.setPower(1);
 
                     //TODO
-                    leftDropdown.setPosition(down + .05);
-                    rightDropdown.setPosition(down + .05);
+                    /*leftDropdown.setPosition(dropdownUp);
+                    rightDropdown.setPosition(dropdownUp);*/
 
                     rightSlide.setTargetPosition(0);
                     leftSlide.setTargetPosition(0);
@@ -480,12 +480,6 @@ public class TeleOpModeBlue extends LinearOpMode {
                     else if (gamepad2.triangle && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
                         autoIntakeTime.reset();
                         autointakeState = AutoIntakeState.TOP_LEVEL;
-                    } else if (gamepad2.square && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
-                        autoIntakeTime.reset();
-                        autointakeState = AutoIntakeState.MIDDLE_LEVEL;
-                    } else if (gamepad2.cross && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
-                        autoIntakeTime.reset();
-                        autointakeState = AutoIntakeState.SHARED;
                     }
 
                     break;
@@ -495,19 +489,16 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                 case TOP_LEVEL:
 
-                    rightDropdown.setPosition(down + .2);
-                    leftDropdown.setPosition(down + .2);
+//                    rightDropdown.setPosition(dropdownDown);
+//                    leftDropdown.setPosition(dropdownDown);
+                    if (autoIntakeTime.seconds() > 0 )
 
-
-                    if (autoIntakeTime.seconds() > 0) {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
+                        rightSlide.setTargetPosition((int) slideValues[0]);
+                        leftSlide.setTargetPosition((int) slideValues[0]);
 
-                    } if (autoIntakeTime.seconds() > .1) {
+                    if (autoIntakeTime.seconds() > 1) {
 
                         if (gamepad2.ps) {
                             autoIntakeTime.reset();
@@ -521,70 +512,20 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                     break;
 
-                case MIDDLE_LEVEL:
-
-                    rightDropdown.setPosition(down + .2);
-                    leftDropdown.setPosition(down + .2);
-
-                    if (autoIntakeTime.seconds() > 0) {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-
-                    } if (autoIntakeTime.seconds() > .1) {
-
-                    if (gamepad2.ps) {
-                        autoIntakeTime.reset();
-                        autointakeState = AutoIntakeState.SLIDE_DOWN;
-
-                    } else  if (gamepad2.left_bumper) {
-                        autoIntakeTime.reset();
-                        autointakeState = AutoIntakeState.DROP_FREIGHT;
-                    }
-                }
-
-                    break;
-
-                case SHARED:
-
-                    rightDropdown.setPosition(down + .2);
-                    leftDropdown.setPosition(down + .2);
-
-
-                    if (autoIntakeTime.seconds() > 0) {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) 0);
-                        leftSlide.setTargetPosition((int) 0);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-
-                    } if (autoIntakeTime.seconds() > .1) {
-
-                    if (gamepad2.ps) {
-                        autoIntakeTime.reset();
-                        autointakeState = AutoIntakeState.SLIDE_DOWN;
-
-                    } else  if (gamepad2.left_bumper) {
-                        autoIntakeTime.reset();
-                        autointakeState = AutoIntakeState.DROP_FREIGHT;
-                    }
-                }
-
-                    break;
-
 
                 case DROP_FREIGHT:
 
 
-                    if (autoIntakeTime.seconds() > 0 && autoIntakeTime.seconds() < .3) {
-                        stick.setPosition(stickUp);
+                    if (autoIntakeTime.seconds() > 0 && autoIntakeTime.seconds() < .5) {
 
                     }
-                     else if (autoIntakeTime.seconds() > .3) {
+                    else if (autoIntakeTime.seconds() > .5 && autoIntakeTime.seconds() < 1) {
+
+
+                    } else if (autoIntakeTime.seconds() > 1 && autoIntakeTime.seconds() < 1.5) {
+
+
+                    } else if (autoIntakeTime.seconds() > 1.5) {
                         autoIntakeTime.reset();
                         autointakeState = AutoIntakeState.SLIDE_DOWN;
 
@@ -598,28 +539,22 @@ public class TeleOpModeBlue extends LinearOpMode {
                     break;
 
                 case SLIDE_DOWN:
-                    rightSlide.setVelocity(maxSlideVelocity * .5);
-                    leftSlide.setVelocity(maxSlideVelocity * .5);
+                    rightSlide.setPower(.5);
+                    leftSlide.setPower(.5);
 
-                    leftDropdown.setPosition(down + .05);
-                    rightDropdown.setPosition(down + .05);
 
 //                    leftDropdown.setPosition(dropdownDown);
 //                    rightDropdown.setPosition(dropdownDown);
                     rightSlide.setTargetPosition(0);
                     leftSlide.setTargetPosition(0);
-
-
                     /*slideRotation.setPosition(middle);*/
                     if (autoIntakeTime.seconds() > 1.5)
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
                     break;
                 case INTAKE_ACTIVE:
 
-                    tubeys.setPower(.75);
+                    tubeys.setPower(.5);
                     stick.setPosition(stickUp);
-                    leftDropdown.setPosition(down);
-                    rightDropdown.setPosition(down);
 
                 /*    leftDropdown.setPosition(dropdownDown);
                     rightDropdown.setPosition(dropdownDown);*/
@@ -631,7 +566,6 @@ public class TeleOpModeBlue extends LinearOpMode {
 
 //                        leftDropdown.setPosition(dropdownDown);
 //                        rightDropdown.setPosition(dropdownDown);
-                        stick.setPosition(stickDown);
 
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
                     } else if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 3 && autoIntakeTime.seconds() < .5) {
@@ -652,10 +586,7 @@ public class TeleOpModeBlue extends LinearOpMode {
 //                    rightDropdown.setPosition(dropdownDown);
                     autoIntakeTime.reset();
                     if (gamepad2.right_trigger == 0 && autoIntakeTime.seconds() < .75) {
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
+                        tubeys.setPower(.5);
 
 //                        leftDropdown.setPosition(dropdownDown);
 //                        rightDropdown.setPosition(dropdownDown);
@@ -665,7 +596,6 @@ public class TeleOpModeBlue extends LinearOpMode {
                     break;
                 case REVERSE_INTAKE:
                     tubeys.setPower(-.5);
-                    stick.setPosition(stickUp);
 
 //                    leftDropdown.setPosition(dropdownDown);
 //                    rightDropdown.setPosition(dropdownDown);

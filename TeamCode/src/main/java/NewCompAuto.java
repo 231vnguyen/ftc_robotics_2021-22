@@ -1,4 +1,3 @@
-package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
@@ -16,6 +15,9 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import org.firstinspires.ftc.teamcode.BarcodePipeline;
+import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -267,8 +269,8 @@ public class NewCompAuto extends LinearOpMode {
             telemetry.addData("initialDelay (Up/Down Dpad)", initialDelay);
             telemetry.addData("Barcode Position", Barcode[barcodeValue]);
 
-            telemetry.addData("Analysis1", pipeline.avg1);
-            telemetry.addData("Analysis2", pipeline.avg2);
+//            telemetry.addData("Analysis1", pipeline.avg1);
+//            telemetry.addData("Analysis2", pipeline.avg2);
             telemetry.addData("Position", BarcodePipeline.position);
             telemetry.addData("BarcodeValue", barcodeValue);
 

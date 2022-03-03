@@ -121,8 +121,8 @@ public class BarcodePipeline extends LinearOpMode {
          * The core values which define the location and size of the sample regions
          * If you want to enlarge or reduce the size of the regions, it should be done here.
          */
-        static final Point REGION1_TOPMIDDLE_ANCHOR_POINT = new Point(80,98);
-        static final Point REGION2_TOPMIDDLE_ANCHOR_POINT = new Point(230,98);
+        static final Point REGION1_TOPMIDDLE_ANCHOR_POINT = new Point(70,80);
+        static final Point REGION2_TOPMIDDLE_ANCHOR_POINT = new Point(235,80);
 //        static final Point REGION3_TOPMIDDLE_ANCHOR_POINT = new Point(253,98);
         static final int REGION_WIDTH = 40;
         static final int REGION_HEIGHT = 40;
