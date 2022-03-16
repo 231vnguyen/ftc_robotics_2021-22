@@ -23,7 +23,7 @@ public class TeleOpModeBlue extends LinearOpMode {
     private final double wheelMotorTicks = 384.5;
     private final double wheelMotorRPM = 435;
     private final double wheelDiameter = 3.77953;
-    private final double botRotationSpeed = 1.1; //to match rotation with driving
+    private final double botRotationSpeed = .9; //to match rotation with driving
     private final double wheelMaxVelocity = 1;
     private final double maxSlideTicks = 384.5 * 2.8;
     private final double maxSlideVelocity = wheelMotorRPM * wheelMotorTicks / 60;
@@ -51,7 +51,7 @@ public class TeleOpModeBlue extends LinearOpMode {
     private int inverse = 1;
 
     //create the gear array
-    private final double[] gearValues = {.18, .3, .5, 1.0};
+    private final double[] gearValues = {.18, .3, .5, .75, 1.0};
 
     private int horizontalPosition = 2;
     private final double[] horizontalValues = {
@@ -160,7 +160,8 @@ public class TeleOpModeBlue extends LinearOpMode {
         DROP_FREIGHT,
         SLIDE_DOWN,
         MIDDLE_LEVEL,
-        SHARED
+        SHARED,
+        HIGHER_LEVEL
     }
 
     AutoIntakeState autointakeState = AutoIntakeState.DEFAULT_POSITION;
@@ -404,9 +405,10 @@ public class TeleOpModeBlue extends LinearOpMode {
             } /*else if (!gamepad1.cross || !gamepad1.circle) {
                 *//*spinnyTime.reset();*//*
                 carouselServo.setPower(0);
-            } */else
+            } */else {
                 leftCarousel.setPower(0);
                 rightCarousel.setPower(0);
+            }
 
 
             //---------------------------------------------------------------------
@@ -486,6 +488,9 @@ public class TeleOpModeBlue extends LinearOpMode {
                     } else if (gamepad2.cross && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
                         autoIntakeTime.reset();
                         autointakeState = AutoIntakeState.SHARED;
+                    } else if (gamepad2.circle && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
+                        autoIntakeTime.reset();
+                        autointakeState = AutoIntakeState.HIGHER_LEVEL;
                     }
 
                     break;
@@ -495,8 +500,8 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                 case TOP_LEVEL:
 
-                    rightDropdown.setPosition(down + .2);
-                    leftDropdown.setPosition(down + .2);
+                    rightDropdown.setPosition(down);
+                    leftDropdown.setPosition(down);
 
 
                     if (autoIntakeTime.seconds() > 0) {
@@ -521,10 +526,38 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                     break;
 
+                case HIGHER_LEVEL:
+
+                    rightDropdown.setPosition(down);
+                    leftDropdown.setPosition(down);
+
+
+                    if (autoIntakeTime.seconds() > 0) {
+                        rightSlide.setPower(.5);
+                        leftSlide.setPower(.5);
+                        rightSlide.setTargetPosition((int) (maxSlideTicks * 1.3));
+                        leftSlide.setTargetPosition((int) (maxSlideTicks * 1.3));
+                        rightDropdown.setPosition(forward);
+                        leftDropdown.setPosition(forward);
+
+                    } if (autoIntakeTime.seconds() > .1) {
+
+                    if (gamepad2.ps) {
+                        autoIntakeTime.reset();
+                        autointakeState = AutoIntakeState.SLIDE_DOWN;
+
+                    } else  if (gamepad2.left_bumper) {
+                        autoIntakeTime.reset();
+                        autointakeState = AutoIntakeState.DROP_FREIGHT;
+                    }
+                }
+
+                    break;
+
                 case MIDDLE_LEVEL:
 
-                    rightDropdown.setPosition(down + .2);
-                    leftDropdown.setPosition(down + .2);
+                    rightDropdown.setPosition(down);
+                    leftDropdown.setPosition(down);
 
                     if (autoIntakeTime.seconds() > 0) {
                         rightSlide.setPower(.5);
@@ -550,15 +583,15 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                 case SHARED:
 
-                    rightDropdown.setPosition(down + .2);
-                    leftDropdown.setPosition(down + .2);
+                    rightDropdown.setPosition(down);
+                    leftDropdown.setPosition(down);
 
 
                     if (autoIntakeTime.seconds() > 0) {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) 0);
-                        leftSlide.setTargetPosition((int) 0);
+                        rightSlide.setTargetPosition((int) (maxSlideTicks * .2));
+                        leftSlide.setTargetPosition((int) (maxSlideTicks * .2));
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
 
@@ -611,7 +644,7 @@ public class TeleOpModeBlue extends LinearOpMode {
 
 
                     /*slideRotation.setPosition(middle);*/
-                    if (autoIntakeTime.seconds() > 1.5)
+                    if (autoIntakeTime.seconds() > .5)
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
                     break;
                 case INTAKE_ACTIVE:
@@ -634,7 +667,7 @@ public class TeleOpModeBlue extends LinearOpMode {
                         stick.setPosition(stickDown);
 
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
-                    } else if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 3 && autoIntakeTime.seconds() < .5) {
+                    } else if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2.85 && autoIntakeTime.seconds() < .5) {
                         gamepad1.rumbleBlips(1);
                         gamepad2.rumbleBlips(1);
 
