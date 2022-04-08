@@ -33,8 +33,6 @@ public class BlueCompAuto extends LinearOpMode {
     private int autoStart = 0;
     private int autoMode = 0;
     private int initialDelay = 0;
-    private int barcodeValue = 0;
-
 
 
 
@@ -48,7 +46,7 @@ public class BlueCompAuto extends LinearOpMode {
     private final double wheelDiameter = 3.77953;
     private final double botRotationSpeed = 1.1; //to match rotation with driving
     private final double wheelMaxVelocity = 1;
-    private final double maxrightSlideTicks = 384.5 * 2;
+    private final double maxSlideTicks = 384.5 * 2.8;
     private final double maxSlideVelocity = wheelMotorRPM * wheelMotorTicks / 60;
     private final double spinnyTicks = 537.7;
     private final double maxSpinnyVelocity = 312 * spinnyTicks / 60;
@@ -78,15 +76,27 @@ public class BlueCompAuto extends LinearOpMode {
 
     private int slidePosition = 0;
     private final double[] slideValues = {
-            maxrightSlideTicks * 1, //top level
-            maxrightSlideTicks * .55, //shared
-            maxrightSlideTicks * .3, //low level
-            maxrightSlideTicks * .6, //middle level
+            maxSlideTicks * 1, //top level
+            maxSlideTicks * .55, //shared
+            maxSlideTicks * .3, //low level
+            maxSlideTicks * .6, //middle level
 
     };
+    private int barcodeValue = 0;
+    private int firstLevel = (int) (maxSlideTicks * .05);
+    private int secondLevel = (int) (maxSlideTicks * .5);
 
+    private final double[] cameraslideValuesred = {
+            firstLevel,
+            secondLevel,
+            maxSlideTicks
+    };
 
-
+    private final double[] cameraslideValuesblue = {
+            secondLevel,
+            firstLevel,
+            maxSlideTicks
+    };
 
     //create general variables
     private double gamepad1LY;
@@ -94,11 +104,10 @@ public class BlueCompAuto extends LinearOpMode {
     private double gamepad1RX;
 
     //create motor/servo objects
+//    private CRServo leftCarousel;
+//    private CRServo rightCarousel;
 
-
-
-    private CRServo leftCarousel;
-    private CRServo rightCarousel;
+    private DcMotor carousel;
 
     private Servo stick;
 
@@ -143,7 +152,7 @@ public class BlueCompAuto extends LinearOpMode {
     private final double down = 0;
     private final double forward = .8;
 
-    private final double maxSlideTicks = 384.5 * 2.8;
+
 
 
     private final double stickUp = .4;
@@ -210,7 +219,7 @@ public class BlueCompAuto extends LinearOpMode {
         //create variable to store visual information
         String[] display = {"Carousel-Blue", "Warehouse-Blue", "Carousel-Red",
                 "Warehouse-Red", "Deliver Freight", "Park"};
-        String[] Barcode = {"Right", "Left", "Outside"};
+        String[] Barcode = {"Outside Detection", "Left Side", "Right Side"};
         //for loop to allow selection of autonomous situation
         for (boolean buttonPressed = false; !gamepad2.a && !opModeIsActive() && !isStopRequested();) {
 
@@ -222,14 +231,7 @@ public class BlueCompAuto extends LinearOpMode {
                 autoStart++;
                 buttonPressed = true;
                 //change automode
-            }  /*else if (gamepad1.dpad_down && autoMode > 0 && !buttonPressed) {
-                autoMode--;
-                buttonPressed = true;
-            } else if (gamepad1.dpad_up && autoMode < 1 && !buttonPressed) {
-                autoMode++;
-                buttonPressed = true;
-            }*/
-            //change initial delay
+            }
             else if (gamepad2.dpad_down && initialDelay > 0 && !buttonPressed) {
                 initialDelay--;
                 buttonPressed = true;
@@ -246,13 +248,13 @@ public class BlueCompAuto extends LinearOpMode {
                 buttonPressed = true;
             }
             //choose barcode position
-            else if (gamepad2.square && barcodeValue > 0 && !buttonPressed) {
+           /* else if (gamepad2.square && barcodeValue > 0 && !buttonPressed) {
                 barcodeValue--;
                 buttonPressed = true;
             } else if (gamepad2.circle && barcodeValue < 2 && !buttonPressed) {
                 barcodeValue++;
                 buttonPressed = true;
-            }
+            }*/
 
             //wait until buttons are not pressed
             else if (buttonPressed && !gamepad2.dpad_left && !gamepad2.dpad_right && !gamepad2.dpad_up &&
@@ -267,18 +269,17 @@ public class BlueCompAuto extends LinearOpMode {
 
 //            telemetry.addData("Analysis1", pipeline.avg1);
 //            telemetry.addData("Analysis2", pipeline.avg2);
-            telemetry.addData("Position", BarcodePipeline.position);
-            telemetry.addData("BarcodeValue", barcodeValue);
 
-            //robot position notes
-//            if (autoStart == 0 && autoMode == 0) //CAROUSEL BLUE SPIN AND PARK
-//                telemetry.addLine("Spinny - Bottom Right");
-//            else if (autoStart == 1 && autoMode == 0) //WAREHOUSE BLUE PARK
-//                telemetry.addLine("Spinny - Bottom Left");
-//            else if (autoStart == 2 && autoMode == 0) //CAROUSEL RED SPIN AND PARK
-//                telemetry.addLine("Spinny - Bottom Left");
-//            else if (autoStart == 3 && autoMode == 0) //WAREHOUSE RED PARK
-//                telemetry.addLine("Spinny - Top Right");
+            if (BarcodePipeline.position == BarcodePipeline.BarcodePosition.LEFT)
+                barcodeValue = 0;
+            if (BarcodePipeline.position == BarcodePipeline.BarcodePosition.MIDDLE)
+                barcodeValue = 1;
+            if (BarcodePipeline.position == BarcodePipeline.BarcodePosition.RIGHT)
+                barcodeValue = 2;
+
+
+//            telemetry.addData("Position", BarcodePipeline.position);
+            telemetry.addData("BarcodeValue", barcodeValue);
 
 
 
@@ -292,8 +293,11 @@ public class BlueCompAuto extends LinearOpMode {
         //setup driving motors
 
         //setup other objects
-        leftCarousel = hardwareMap.get(CRServo.class, "leftCarousel");
-        rightCarousel = hardwareMap.get(CRServo.class, "rightCarousel");
+//        leftCarousel = hardwareMap.get(CRServo.class, "leftCarousel");
+//        rightCarousel = hardwareMap.get(CRServo.class, "rightCarousel");
+        carousel = hardwareMap.get(DcMotor.class, "carousel");
+
+
 
         stick = hardwareMap.get(Servo.class, "stick");
 
@@ -332,955 +336,350 @@ public class BlueCompAuto extends LinearOpMode {
 
 
 
+
         waitForStart();
 
-        if (BarcodePipeline.position == BarcodePipeline.BarcodePosition.LEFT)
-            barcodeValue = 0;
-        if (BarcodePipeline.position == BarcodePipeline.BarcodePosition.MIDDLE)
-            barcodeValue = 1;
-        if (BarcodePipeline.position == BarcodePipeline.BarcodePosition.RIGHT)
-            barcodeValue = 2;
 
 
 
         //intake Servo
         rightSlide.setVelocity(maxSlideVelocity);
         leftSlide.setVelocity(maxSlideVelocity);
-/*
-        switch (autoState) {
-            case DEFAULT_POSITION:
 
-                rightSlide.setVelocity(maxSlideVelocity);
-                leftSlide.setVelocity(maxSlideVelocity);
-
-                //TODO
-                leftDropdown.setPosition(down + .05);
-                rightDropdown.setPosition(down + .05);
-
-                rightSlide.setTargetPosition(0);
-                leftSlide.setTargetPosition(0);
-                tubeys.setPower(0);
-
-
-
-
-
-                break;
-
-
-
-
-            case TOP_LEVEL:
-
-                rightDropdown.setPosition(down + .2);
-                leftDropdown.setPosition(down + .2);
-
-
-                if (autoIntakeTime.seconds() > 0) {
-                    rightSlide.setPower(.5);
-                    leftSlide.setPower(.5);
-                    rightSlide.setTargetPosition((int) maxSlideTicks);
-                    leftSlide.setTargetPosition((int) maxSlideTicks);
-                    rightDropdown.setPosition(forward);
-                    leftDropdown.setPosition(forward);
-
-                } if (autoIntakeTime.seconds() > .1) {
-
-
-            }
-
-                break;
-
-            case MIDDLE_LEVEL:
-
-                rightDropdown.setPosition(down + .2);
-                leftDropdown.setPosition(down + .2);
-
-                if (autoIntakeTime.seconds() > 0) {
-                    rightSlide.setPower(.5);
-                    leftSlide.setPower(.5);
-                    rightSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                    leftSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                    rightDropdown.setPosition(forward);
-                    leftDropdown.setPosition(forward);
-
-                }
-                break;
-
-            case SHARED:
-
-                rightDropdown.setPosition(down + .2);
-                leftDropdown.setPosition(down + .2);
-
-
-                if (autoIntakeTime.seconds() > 0) {
-                    rightSlide.setPower(.5);
-                    leftSlide.setPower(.5);
-                    rightSlide.setTargetPosition((int) 0);
-                    leftSlide.setTargetPosition((int) 0);
-                    rightDropdown.setPosition(forward);
-                    leftDropdown.setPosition(forward);
-
-                }
-
-                break;
-
-
-            case DROP_FREIGHT:
-
-
-                if (autoIntakeTime.seconds() > 0 && autoIntakeTime.seconds() < .3) {
-                    stick.setPosition(stickUp);
-
-                }
-                else if (autoIntakeTime.seconds() > .3) {
-                    autoIntakeTime.reset();
-                    autoState = AutoIntakeState.SLIDE_DOWN;
-
-
-
-
-                }
-                break;
-
-            case SLIDE_DOWN:
-                rightSlide.setVelocity(maxSlideVelocity * .5);
-                leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                leftDropdown.setPosition(down + .05);
-                rightDropdown.setPosition(down + .05);
-
-//                    leftDropdown.setPosition(dropdownDown);
-//                    rightDropdown.setPosition(dropdownDown);
-                rightSlide.setTargetPosition(0);
-                leftSlide.setTargetPosition(0);
-
-
-                *//*slideRotation.setPosition(middle);*//*
-                if (autoIntakeTime.seconds() > .5)
-                    autoState = AutoIntakeState.DEFAULT_POSITION;
-                break;
-            case INTAKE_ACTIVE:
-
-                tubeys.setPower(.75);
-                stick.setPosition(stickUp);
-                leftDropdown.setPosition(down);
-                rightDropdown.setPosition(down);
-
-                *//*    leftDropdown.setPosition(dropdownDown);
-                    rightDropdown.setPosition(dropdownDown);*//*
-
-                autoIntakeTime.reset();
-
-                if (!gamepad2.right_bumper && autoIntakeTime.seconds() < .75) {
-
-
-//                        leftDropdown.setPosition(dropdownDown);
-//                        rightDropdown.setPosition(dropdownDown);
-                    stick.setPosition(stickDown);
-
-                    autoState = AutoIntakeState.DEFAULT_POSITION;
-                } else if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 3 && autoIntakeTime.seconds() < .5) {
-                    gamepad1.rumbleBlips(1);
-                    gamepad2.rumbleBlips(1);
-
-                    stick.setPosition(stickDown);
-
-//                        leftDropdown.setPosition(dropdownUp);
-//                        rightDropdown.setPosition(dropdownUp);
-
-                    autoState = AutoIntakeState.DEFAULT_POSITION;
-                }
-                break;
-            case ACTIVE_INTAKE_NO_SENSOR:
-
-//                    leftDropdown.setPosition(dropdownDown);
-//                    rightDropdown.setPosition(dropdownDown);
-                autoIntakeTime.reset();
-                if (gamepad2.right_trigger == 0 && autoIntakeTime.seconds() < .75) {
-                    tubeys.setPower(.75);
-                    stick.setPosition(stickUp);
-                    leftDropdown.setPosition(down);
-                    rightDropdown.setPosition(down);
-
-//                        leftDropdown.setPosition(dropdownDown);
-//                        rightDropdown.setPosition(dropdownDown);
-
-                    autoState = AutoIntakeState.DEFAULT_POSITION;
-                }
-                break;
-            case REVERSE_INTAKE:
-                tubeys.setPower(-.5);
-                stick.setPosition(stickUp);
-
-//                    leftDropdown.setPosition(dropdownDown);
-//                    rightDropdown.setPosition(dropdownDown);
-                autoIntakeTime.reset();
-                if (!gamepad2.touchpad && autoIntakeTime.seconds() < .5) {
-                    tubeys.setPower(-.5);
-
-//                        leftDropdown.setPosition(dropdownUp);
-//                        rightDropdown.setPosition(dropdownUp);
-
-                    autoState = AutoIntakeState.DEFAULT_POSITION;
-                }
-                break;
-
-        }*/
-
-
-       /* TrajectorySequence warehouseRedPark = drive.trajectorySequenceBuilder(new Pose2d(-35, -62, Math.toRadians(90)))
-
-                .strafeRight(30)
-
-                .build();
-
-        TrajectorySequence warehouseBluePark = drive.trajectorySequenceBuilder(new Pose2d(-35, 62, Math.toRadians(270)))
-
-                .strafeLeft(30)
-
-                .build();
-
-        TrajectorySequence carouselRedTop = drive.trajectorySequenceBuilder(new Pose2d(-35, -62, Math.toRadians(90)))
-
-                .lineToSplineHeading(new Pose2d(-53, -50, Math.toRadians(250)))
-                .forward(5)
-                .waitSeconds(3)
-                .lineToSplineHeading(new Pose2d(-60, -34, Math.toRadians(180)))
-
-
-
-                .build();
-
-        TrajectorySequence carouselBlueTop = drive.trajectorySequenceBuilder(new Pose2d(-35, -62, Math.toRadians(90)))
-                .splineToSplineHeading(new Pose2d(-25, -34, Math.toRadians(45)), Math.toRadians(90))
-                .waitSeconds(3) //wait for freight dropoffaaa
-                .lineToSplineHeading(new Pose2d(-53, -55, Math.toRadians(250)))
-                .waitSeconds(3)
-                .lineToSplineHeading(new Pose2d(-60, -34, Math.toRadians(180)))
-
-
-                .build();
-
-        TrajectorySequence WarehouseRedTop = drive.trajectorySequenceBuilder(new Pose2d(12, -62, Math.toRadians(90)))
-
-                .lineToSplineHeading(new Pose2d(0, -32, Math.toRadians(120)))
-
-
-                .build();
-
-        TrajectorySequence WarehouseBlueTop = drive.trajectorySequenceBuilder(new Pose2d(12, 62, Math.toRadians(270)))
-                .lineToSplineHeading(new Pose2d(10, 34, Math.toRadians(210)))
-                .forward(8)
-                .waitSeconds(.5) //wait for freight dropoffaaa
-                .lineToSplineHeading(new Pose2d(12, 65, Math.toRadians(180)))
-
-                .addDisplacementMarker(() -> {
-                    drive.setPoseEstimate( new Pose2d(12, 62, Math.toRadians(180)));
-
-                })
-
-                .back(40)
-
-
-                .addTemporalMarker(.5, () -> {
-                    leftDropdown.setPosition(dropdownDown);
-                    rightDropdown.setPosition(dropdownDown);
-                })
-
-
-
-
-
-                .build();
-*/
-
-
-
-
-
-
-
-
-
-
-        //TODO Warehouse Blue Middle
-       if (autoStart == 1 && autoMode == 0 && barcodeValue == 1) { //Warehouse Blue, deliver freight
+  //TODO Warehouse Blue
+         if (autoStart == 1 && autoMode == 0) { //Warehouse Blue, deliver freight
             sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(12, 62, Math.toRadians(90)));
+             drive.setPoseEstimate(new Pose2d(12, 62, Math.toRadians(90)));
 
-            TrajectorySequence traj2BWM = drive.trajectorySequenceBuilder(new Pose2d(12, 62, Math.toRadians(90)))
+             TrajectorySequence trajRWtest = drive.trajectorySequenceBuilder(new Pose2d(12, 62, Math.toRadians(90)))
 
+                     .lineToSplineHeading(new Pose2d(-8, 38, Math.toRadians(-125)))
 
-                    .lineToSplineHeading(new Pose2d(-5, 42, Math.toRadians(250)))
-                    .waitSeconds(1)
-//                                .splineToSplineHeading(new Pose2d(10, 70, Math.toRadians(180)), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(10, 65, Math.toRadians(180)))
-                    .splineToConstantHeading(new Vector2d(50, 65), Math.toRadians(0))
+                     .UNSTABLE_addTemporalMarkerOffset(-2.5, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) cameraslideValuesblue[barcodeValue]);
+                            leftSlide.setTargetPosition((int) cameraslideValuesblue[barcodeValue]);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                         stick.setPosition(stickUp);})
+                     .waitSeconds(.3)
 
-                    .addTemporalMarker(.1, () -> {
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                          stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                            stick.setPosition(stickDown);
+                            rightSlide.setVelocity(maxSlideVelocity * .5);
+                            leftSlide.setVelocity(maxSlideVelocity * .5);
+                            leftDropdown.setPosition(down + .05);
+                            rightDropdown.setPosition(down + .05);
+                            rightSlide.setTargetPosition(0);
+                            leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1, () -> {
+                            tubeys.setPower(.82);
+                            stick.setPosition(stickUp);
+                            leftDropdown.setPosition(down);
+                            rightDropdown.setPosition(down);})
+                     .lineToSplineHeading(new Pose2d(5, 62, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1.75, () -> {
+                          stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(2, () -> {
+                          tubeys.setPower(-.5);;})
+                     .UNSTABLE_addTemporalMarkerOffset(2.25, () -> {
+                          tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(48, 68), Math.toRadians(0))
+                     .lineToSplineHeading(new Pose2d(22, 72, Math.toRadians(-180)))
+                     .UNSTABLE_addTemporalMarkerOffset(-.8, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) maxSlideTicks);
+                            leftSlide.setTargetPosition((int) maxSlideTicks);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .splineToSplineHeading(new Pose2d(-5, 46, Math.toRadians(-110)), Math.toRadians(-90))
+                     .UNSTABLE_addTemporalMarkerOffset(-0.1, () -> {stick.setPosition(stickUp);})
+                     .waitSeconds(.1)
 
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                            stick.setPosition(stickDown);
+                            rightSlide.setVelocity(maxSlideVelocity * .5);
+                            leftSlide.setVelocity(maxSlideVelocity * .5);
+                            leftDropdown.setPosition(down + .05);
+                            rightDropdown.setPosition(down + .05);
+                            rightSlide.setTargetPosition(0);
+                            leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                            tubeys.setPower(.82);
+                            stick.setPosition(stickUp);
+                            leftDropdown.setPosition(down);
+                            rightDropdown.setPosition(down);})
+                     .lineToSplineHeading(new Pose2d(0, 62, Math.toRadians(-180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1.75, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(2, () -> {
+                         tubeys.setPower(-.5);;})
+                     .UNSTABLE_addTemporalMarkerOffset(2.25, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(50, 68), Math.toRadians(0))
+                     .lineToSplineHeading(new Pose2d(12, 72, Math.toRadians(-180)))
+                     .UNSTABLE_addTemporalMarkerOffset(-.8, () -> {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
                         rightSlide.setTargetPosition((int) maxSlideTicks);
                         leftSlide.setTargetPosition((int) maxSlideTicks);
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-
-                    .addTemporalMarker(3.8, () -> {
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(4.5, () -> {
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-                    .build();
-
-
-
-
-            drive.followTrajectorySequence(traj2BWM);
-
-        }  //TODO Warehouse Blue Top
-        else if (autoStart == 1 && autoMode == 0 && barcodeValue == 2) { //Warehouse Blue, deliver freight
-            sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(12, 62, Math.toRadians(-270)));
-
-            Trajectory traj1RW = drive.trajectoryBuilder(new Pose2d(12, 62, Math.toRadians(-270)))
-                    //sleep(initialDelay * 1000);
-                    .lineToSplineHeading(new Pose2d(-5, 45, Math.toRadians(-110)))
-                    /* .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                     .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))*/
-
-                    .addTemporalMarker(.1, () -> {
-
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-
-                    .build();
-
-            TrajectorySequence traj2RW = drive.trajectorySequenceBuilder(traj1RW.end())
-
-                    .splineToSplineHeading(new Pose2d(10, 70, Math.toRadians(-180)), Math.toRadians(90))
-                    .splineToConstantHeading(new Vector2d(50, 70), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(15, 70, Math.toRadians(-180)))
-
-//                                .splineToConstantHeading(new Vector2d(0, -70), Math.toRadians(0))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-                    .splineToSplineHeading(new Pose2d(-5, 46, Math.toRadians(-110)), Math.toRadians(-90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, 72, Math.toRadians(-180)))
-
-                    .splineToConstantHeading(new Vector2d(50, 72), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(18, 72, Math.toRadians(-180)))
-
-                    .splineToSplineHeading(new Pose2d(-5, 47, Math.toRadians(-110)), Math.toRadians(-90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, 74, Math.toRadians(-180)))
-
-                    .splineToConstantHeading(new Vector2d(50, 74), Math.toRadians(0))
-
-
-
-
-
-                    .addTemporalMarker(0, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-
-
-                    .addTemporalMarker(.5, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(3, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(5.36, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(6, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(6.5, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(8.3, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(10.8, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(12.66, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(13.8, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(14.3, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(15.8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(16.1, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-                    })
-
-                    .addTemporalMarker(18.6, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(21.46, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-
-                    .build();
-
-            drive.followTrajectory(traj1RW);
-            drive.followTrajectorySequence(traj2RW);
-            /*drive.setPoseEstimate(new Pose2d(12, 62, Math.toRadians(90)));
-            TrajectorySequence traj2BWT = drive.trajectorySequenceBuilder(new Pose2d(12, 62, Math.toRadians(90)))
-
-
-                    .lineToSplineHeading(new Pose2d(-5, 42, Math.toRadians(250)))
-                    .waitSeconds(1)
-//                                .splineToSplineHeading(new Pose2d(10, 70, Math.toRadians(180)), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(10, 65, Math.toRadians(180)))
-                    .splineToConstantHeading(new Vector2d(50, 65), Math.toRadians(0))
-
-                    .addTemporalMarker(.1, () -> {
-
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-
-                    .addTemporalMarker(3.8, () -> {
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(4.5, () -> {
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-                    .build();*/
-
-            //drive.followTrajectorySequence(traj2BWT);
-
-        } //TODO Warehouse Blue Bottom
-        else if (autoStart == 1 && autoMode == 0 && barcodeValue == 0) { //Warehouse Blue, deliver freight
-            sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(12, 62, Math.toRadians(90)));
-            TrajectorySequence traj2BWB = drive.trajectorySequenceBuilder(new Pose2d(12, 62, Math.toRadians(90)))
-
-
-                    .lineToSplineHeading(new Pose2d(-5, 42, Math.toRadians(250)))
-                    .waitSeconds(1)
-//                                .splineToSplineHeading(new Pose2d(10, 70, Math.toRadians(180)), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(10, 65, Math.toRadians(180)))
-                    .splineToConstantHeading(new Vector2d(50, 65), Math.toRadians(0))
-
-                    .addTemporalMarker(.1, () -> {
-
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .2));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .2));
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-
-                    .addTemporalMarker(3.8, () -> {
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(4.5, () -> {
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-                    .build();
-
-
-
-
-            drive.followTrajectorySequence(traj2BWB);
-
-        }else if (autoStart == 1 && autoMode == 1 && barcodeValue == 2) { //Warehouse Blue park
+                        stick.setPosition(stickDown);})
+                     .splineToSplineHeading(new Pose2d(-5, 46, Math.toRadians(-110)), Math.toRadians(-90))
+                     .UNSTABLE_addTemporalMarkerOffset(-0.1, () -> {stick.setPosition(stickUp);})
+                     .waitSeconds(.1)
+
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                            stick.setPosition(stickDown);
+                            rightSlide.setVelocity(maxSlideVelocity * .5);
+                            leftSlide.setVelocity(maxSlideVelocity * .5);
+                            leftDropdown.setPosition(down + .05);
+                            rightDropdown.setPosition(down + .05);
+                            rightSlide.setTargetPosition(0);
+                            leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                            tubeys.setPower(.82);
+                            stick.setPosition(stickUp);
+                            leftDropdown.setPosition(down);
+                            rightDropdown.setPosition(down);})
+                     .lineToSplineHeading(new Pose2d(0, 62, Math.toRadians(-180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1.75, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(2, () -> {
+                         tubeys.setPower(-.5);;})
+                     .UNSTABLE_addTemporalMarkerOffset(2.25, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(58, 68), Math.toRadians(0))
+                     .lineToSplineHeading(new Pose2d(12, 76, Math.toRadians(-180)))
+                     .UNSTABLE_addTemporalMarkerOffset(-.8, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) maxSlideTicks);
+                            leftSlide.setTargetPosition((int) maxSlideTicks);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .splineToSplineHeading(new Pose2d(0, 50, Math.toRadians(-110)), Math.toRadians(-90))
+                     .UNSTABLE_addTemporalMarkerOffset(-0.1, () -> {stick.setPosition(stickUp);})
+                     .waitSeconds(.1)
+
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                          stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                            stick.setPosition(stickDown);
+                            rightSlide.setVelocity(maxSlideVelocity * .5);
+                            leftSlide.setVelocity(maxSlideVelocity * .5);
+                            leftDropdown.setPosition(down + .05);
+                            rightDropdown.setPosition(down + .05);
+                            rightSlide.setTargetPosition(0);
+                            leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                            tubeys.setPower(.82);
+                            stick.setPosition(stickUp);
+                            leftDropdown.setPosition(down);
+                            rightDropdown.setPosition(down);})
+
+
+                     .lineToSplineHeading(new Pose2d(0, 62, Math.toRadians(-180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(91, 68), Math.toRadians(0))
+
+                     .build();
+
+             drive.followTrajectorySequence(trajRWtest);
+
+
+        } else if (autoStart == 1 && autoMode == 1) { //Warehouse Blue park
 
             sleep(initialDelay * 1000);
             drive.setPoseEstimate(new Pose2d(12, 62, Math.toRadians(270)));
             //drive.followTrajectorySequence(warehouseBluePark);
         }
 
-        //TODO Carousel Red Bottom
-        else if (autoStart == 2 && autoMode == 0 && barcodeValue == 0) { //Carousel Red, deliver freight top, noncompleted
+      //TODO Carousel Red
+        else if (autoStart == 2 && autoMode == 0) { //Carousel Red, deliver freight top
             sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(-32, -62, Math.toRadians(270)));
-           // drive.followTrajectorySequence(carouselRedTop);
-            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-32, -62, Math.toRadians(270)))
+            drive.setPoseEstimate(new Pose2d(-35, -62, Math.toRadians(270)));
+            // drive.followTrajectorySequence(carouselRedTop);
+            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-35, -62, Math.toRadians(270)))
 
-                    .lineToSplineHeading(new Pose2d(-55, -55, Math.toRadians(360)))
-                    .waitSeconds(5)
-                    .lineToSplineHeading(new Pose2d(-33, -20, Math.toRadians(0)))
-                    .lineToSplineHeading(new Pose2d(-62, -34, Math.toRadians(0)))
+                    .lineToSplineHeading(new Pose2d(-55, -40, Math.toRadians(360)))
+                    .lineToConstantHeading(new Vector2d(-55, -20))
 
-                    .addTemporalMarker(2.5, () -> {
-                        leftCarousel.setPower(-1);
-                        rightCarousel.setPower(-1);
-
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-                    })
-                    .addTemporalMarker(7.7, () -> {
-                        leftCarousel.setPower(0);
-                        rightCarousel.setPower(0);
-                    })
-                    .addTemporalMarker(8, () -> {
+                    //drop freight
+                    .lineToConstantHeading(new Vector2d(-33, -25))
+                    .UNSTABLE_addTemporalMarkerOffset(-2.5, () -> {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .2));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .2));
+                        rightSlide.setTargetPosition((int) cameraslideValuesred[barcodeValue]);
+                        leftSlide.setTargetPosition((int) cameraslideValuesred[barcodeValue]);
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-                    })
-                    .addTemporalMarker(9.6, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        stick.setPosition(stickUp);})
+                    .waitSeconds(.3)
 
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(10.2, () -> {
+                    .UNSTABLE_addTemporalMarkerOffset(0.2, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(.4, () -> {
+                        stick.setPosition(stickDown);
                         rightSlide.setVelocity(maxSlideVelocity * .5);
                         leftSlide.setVelocity(maxSlideVelocity * .5);
-
                         leftDropdown.setPosition(down + .05);
                         rightDropdown.setPosition(down + .05);
-
-
                         rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
+                        leftSlide.setTargetPosition(0)
+                        ;})
+                    .lineToSplineHeading(new Pose2d(-62, -30, Math.toRadians(90)))
+                    .lineToSplineHeading(new Pose2d(-60, -60, Math.toRadians(90)))
+                    .UNSTABLE_addTemporalMarkerOffset(-.5, () -> {
+                        carousel.setPower(-.35);})
+                    .waitSeconds(3)
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        carousel.setPower(0);})
 
-
-                    .build();
-            drive.followTrajectorySequence(CRtop);
-
-        } //TODO Carousel Red Middle
-        else if (autoStart == 2 && autoMode == 0 && barcodeValue == 1) { //Carousel Red, deliver freight top, noncompleted
-            sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(-32, -62, Math.toRadians(270)));
-            // drive.followTrajectorySequence(carouselRedTop);
-            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-32, -62, Math.toRadians(270)))
-
-                    .lineToSplineHeading(new Pose2d(-55, -55, Math.toRadians(360)))
-                    .waitSeconds(5)
-                    .lineToSplineHeading(new Pose2d(-33, -20, Math.toRadians(0)))
-                    .lineToSplineHeading(new Pose2d(-62, -34, Math.toRadians(0)))
-
-                    .addTemporalMarker(2.5, () -> {
-                        leftCarousel.setPower(-1);
-                        rightCarousel.setPower(-1);
-
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-                    })
-                    .addTemporalMarker(7.7, () -> {
-                        leftCarousel.setPower(0);
-                        rightCarousel.setPower(0);
-                    })
-                    .addTemporalMarker(8, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-                    })
-                    .addTemporalMarker(9.6, () -> {
-
+                    .lineToConstantHeading(new Vector2d(-59, -66))
+                    .UNSTABLE_addTemporalMarkerOffset(-1, () -> {
+                        tubeys.setPower(.82);
                         stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(10.2, () -> {
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-
-                    .build();
-            drive.followTrajectorySequence(CRtop);
-
-        } //TODO Carousel Red Top
-        else if (autoStart == 2 && autoMode == 0 && barcodeValue == 2) { //Carousel Red, deliver freight top, noncompleted
-            sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(-32, -62, Math.toRadians(270)));
-            // drive.followTrajectorySequence(carouselRedTop);
-            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-32, -62, Math.toRadians(270)))
-
-                    .lineToSplineHeading(new Pose2d(-55, -55, Math.toRadians(360)))
-                    .waitSeconds(5)
-                    .lineToSplineHeading(new Pose2d(-33, -20, Math.toRadians(0)))
-                    .lineToSplineHeading(new Pose2d(-62, -34, Math.toRadians(0)))
-
-                    .addTemporalMarker(2.5, () -> {
-                        leftCarousel.setPower(-1);
-                        rightCarousel.setPower(-1);
-
                         leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-                    })
-                    .addTemporalMarker(7.7, () -> {
-                        leftCarousel.setPower(0);
-                        rightCarousel.setPower(0);
-                    })
-                    .addTemporalMarker(8, () -> {
+                        rightDropdown.setPosition(down);})
+
+                    .lineToConstantHeading(new Vector2d(-40, -62))
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                        tubeys.setPower(0);})
+                    .lineToSplineHeading(new Pose2d(-55, -40, Math.toRadians(360)))
+                    .lineToConstantHeading(new Vector2d(-55, -20))
+                    //drop duck
+                    .lineToConstantHeading(new Vector2d(-33, -25))
+                    .UNSTABLE_addTemporalMarkerOffset(-1.5, () -> {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
                         rightSlide.setTargetPosition((int) maxSlideTicks);
                         leftSlide.setTargetPosition((int) maxSlideTicks);
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-                    })
-                    .addTemporalMarker(9.6, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        stick.setPosition(stickUp);})
+                    .waitSeconds(.3)
 
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(10.2, () -> {
+                    .UNSTABLE_addTemporalMarkerOffset(0.2, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(.4, () -> {
+                        stick.setPosition(stickDown);
                         rightSlide.setVelocity(maxSlideVelocity * .5);
                         leftSlide.setVelocity(maxSlideVelocity * .5);
-
                         leftDropdown.setPosition(down + .05);
                         rightDropdown.setPosition(down + .05);
-
-
                         rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-
+                        leftSlide.setTargetPosition(0);})
+                    .lineToSplineHeading(new Pose2d(-62, -30, Math.toRadians(90)))
+                    .lineToSplineHeading(new Pose2d(-64, -40, Math.toRadians(90)))
                     .build();
             drive.followTrajectorySequence(CRtop);
 
-        } //TODO Carousel Blue Bottom
-        else if (autoStart == 0 && autoMode == 0 && barcodeValue == 0) { //Carousel Red, deliver freight top, noncompleted
+        }  //TODO Carousel Blue
+        else if (autoStart == 0 && autoMode == 0) { //Carousel Red, deliver freight top, noncompleted
             sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(-32, 62, Math.toRadians(-270)));
+            drive.setPoseEstimate(new Pose2d(-35, 62, Math.toRadians(-270)));
             // drive.followTrajectorySequence(carouselRedTop);
-            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-32, -62, Math.toRadians(270)))
+            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-35, 62, Math.toRadians(-270)))
 
-                    .lineToSplineHeading(new Pose2d(-55, 55, Math.toRadians(-360)))
-                    .waitSeconds(5)
-                    .lineToSplineHeading(new Pose2d(-33, 20, Math.toRadians(-0)))
-                    .lineToSplineHeading(new Pose2d(-62, 34, Math.toRadians(-0)))
+                    .lineToSplineHeading(new Pose2d(-55, 40, Math.toRadians(-360)))
+                    .lineToConstantHeading(new Vector2d(-55, 20))
 
-                    .addTemporalMarker(2.5, () -> {
-                        leftCarousel.setPower(-1);
-                        rightCarousel.setPower(-1);
-
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-                    })
-                    .addTemporalMarker(7.7, () -> {
-                        leftCarousel.setPower(0);
-                        rightCarousel.setPower(0);
-                    })
-                    .addTemporalMarker(8, () -> {
+                    //drop freight
+                    .lineToConstantHeading(new Vector2d(-33, 25))
+                    .UNSTABLE_addTemporalMarkerOffset(-2.5, () -> {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .2));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .2));
+                        rightSlide.setTargetPosition((int) cameraslideValuesblue[barcodeValue]);
+                        leftSlide.setTargetPosition((int) cameraslideValuesblue[barcodeValue]);
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-                    })
-                    .addTemporalMarker(9.6, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        stick.setPosition(stickUp);})
+                    .waitSeconds(.3)
 
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(10.2, () -> {
+                    .UNSTABLE_addTemporalMarkerOffset(0.2, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(.4, () -> {
+                        stick.setPosition(stickDown);
                         rightSlide.setVelocity(maxSlideVelocity * .5);
                         leftSlide.setVelocity(maxSlideVelocity * .5);
-
                         leftDropdown.setPosition(down + .05);
                         rightDropdown.setPosition(down + .05);
-
-
                         rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
+                        leftSlide.setTargetPosition(0)
+                        ;})
+                    .lineToSplineHeading(new Pose2d(-62, 30, Math.toRadians(-90)))
+                    .lineToSplineHeading(new Pose2d(-62, 60, Math.toRadians(-90)))
+                    .UNSTABLE_addTemporalMarkerOffset(-.5, () -> {
+                        carousel.setPower(.35);})
+                    .waitSeconds(3)
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        carousel.setPower(0);})
 
-
-                    .build();
-            drive.followTrajectorySequence(CRtop);
-
-        } //TODO Carousel Blue Middle
-        else if (autoStart == 0 && autoMode == 0 && barcodeValue == 1) { //Carousel Red, deliver freight top, noncompleted
-            sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(-32, -62, Math.toRadians(270)));
-            // drive.followTrajectorySequence(carouselRedTop);
-            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-32, 62, Math.toRadians(-270)))
-
-                    .lineToSplineHeading(new Pose2d(-55, 55, Math.toRadians(-360)))
-                    .waitSeconds(5)
-                    .lineToSplineHeading(new Pose2d(-33, 20, Math.toRadians(-0)))
-                    .lineToSplineHeading(new Pose2d(-62, 34, Math.toRadians(-0)))
-
-                    .addTemporalMarker(2.5, () -> {
-                        leftCarousel.setPower(-1);
-                        rightCarousel.setPower(-1);
-
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-                    })
-                    .addTemporalMarker(7.7, () -> {
-                        leftCarousel.setPower(0);
-                        rightCarousel.setPower(0);
-                    })
-                    .addTemporalMarker(8, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-                    })
-                    .addTemporalMarker(9.6, () -> {
-
+                    .lineToConstantHeading(new Vector2d(-59, 66))
+                    .UNSTABLE_addTemporalMarkerOffset(-1, () -> {
+                        tubeys.setPower(.82);
                         stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(10.2, () -> {
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-
-                    .build();
-            drive.followTrajectorySequence(CRtop);
-
-        } //TODO Carousel Blue Top
-        else if (autoStart == 0 && autoMode == 0 && barcodeValue == 2) { //Carousel Red, deliver freight top, noncompleted
-            sleep(initialDelay * 1000);
-            drive.setPoseEstimate(new Pose2d(-32, 62, Math.toRadians(-270)));
-            // drive.followTrajectorySequence(carouselRedTop);
-            TrajectorySequence CRtop = drive.trajectorySequenceBuilder(new Pose2d(-32, 62, Math.toRadians(-270)))
-
-                    .lineToSplineHeading(new Pose2d(-55, 55, Math.toRadians(-360)))
-                    .waitSeconds(5)
-                    .lineToSplineHeading(new Pose2d(-33, 20, Math.toRadians(-0)))
-                    .lineToSplineHeading(new Pose2d(-62, 34, Math.toRadians(-0)))
-
-                    .addTemporalMarker(2.5, () -> {
-                        leftCarousel.setPower(-1);
-                        rightCarousel.setPower(-1);
-
                         leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-                    })
-                    .addTemporalMarker(7.7, () -> {
-                        leftCarousel.setPower(0);
-                        rightCarousel.setPower(0);
-                    })
-                    .addTemporalMarker(8, () -> {
+                        rightDropdown.setPosition(down);})
+
+                    .lineToConstantHeading(new Vector2d(-40, 62))
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                        tubeys.setPower(0);})
+                    .lineToSplineHeading(new Pose2d(-55, 40, Math.toRadians(-360)))
+                    .lineToConstantHeading(new Vector2d(-55, 20))
+                    //drop duck
+                    .lineToConstantHeading(new Vector2d(-33, 25))
+                    .UNSTABLE_addTemporalMarkerOffset(-1.5, () -> {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
                         rightSlide.setTargetPosition((int) maxSlideTicks);
                         leftSlide.setTargetPosition((int) maxSlideTicks);
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-                    })
-                    .addTemporalMarker(9.6, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                        stick.setPosition(stickUp);})
+                    .waitSeconds(.3)
 
-                        stick.setPosition(stickUp);
-                    })
-                    .addTemporalMarker(10.2, () -> {
+                    .UNSTABLE_addTemporalMarkerOffset(0.2, () -> {
+                        stick.setPosition(stickDown);})
+                    .UNSTABLE_addTemporalMarkerOffset(.4, () -> {
+                        stick.setPosition(stickDown);
                         rightSlide.setVelocity(maxSlideVelocity * .5);
                         leftSlide.setVelocity(maxSlideVelocity * .5);
-
                         leftDropdown.setPosition(down + .05);
                         rightDropdown.setPosition(down + .05);
-
-
                         rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-                    })
-
-
+                        leftSlide.setTargetPosition(0);})
+                    .lineToSplineHeading(new Pose2d(-62, 30, Math.toRadians(-90)))
+                    .lineToSplineHeading(new Pose2d(-64, 40, Math.toRadians(-90)))
                     .build();
             drive.followTrajectorySequence(CRtop);
 
@@ -1288,725 +687,169 @@ public class BlueCompAuto extends LinearOpMode {
 
         }
 
-        //TODO Warehouse Red Top
-        else if (autoStart == 3 && autoMode == 0 && barcodeValue == 2) { //Warehouse Red, deliver freight
+        //TODO Warehouse Red
+        else if (autoStart == 3 && autoMode == 0) { //Warehouse Red, deliver freight
             //drive.followTrajectorySequence(WarehouseRedTop);
-
             drive.setPoseEstimate(new Pose2d(12, -62, Math.toRadians(270)));
 
-            Trajectory traj1RW = drive.trajectoryBuilder(new Pose2d(12, -62, Math.toRadians(270)))
-                    //sleep(initialDelay * 1000);
-                    .lineToSplineHeading(new Pose2d(-5, -45, Math.toRadians(110)))
-                    /* .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                     .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))*/
+             TrajectorySequence trajRWtest = drive.trajectorySequenceBuilder(new Pose2d(12, -62, Math.toRadians(270)))
 
-                    .addTemporalMarker(.1, () -> {
+                     .lineToSplineHeading(new Pose2d(-8, -38, Math.toRadians(125)))
 
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
+                     .UNSTABLE_addTemporalMarkerOffset(-2.5, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) cameraslideValuesred[barcodeValue]);
+                            leftSlide.setTargetPosition((int) cameraslideValuesred[barcodeValue]);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                         stick.setPosition(stickUp);})
+                     .waitSeconds(.3)
 
-
-                    })
-
-                    .build();
-
-            TrajectorySequence traj2RW = drive.trajectorySequenceBuilder(traj1RW.end())
-
-                    .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)))
-
-//                                .splineToConstantHeading(new Vector2d(0, -70), Math.toRadians(0))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-                    .splineToSplineHeading(new Pose2d(-5, -46, Math.toRadians(110)), Math.toRadians(90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, -72, Math.toRadians(180)))
-
-                    .splineToConstantHeading(new Vector2d(50, -72), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(18, -72, Math.toRadians(180)))
-
-                    .splineToSplineHeading(new Pose2d(-5, -47, Math.toRadians(110)), Math.toRadians(90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, -74, Math.toRadians(180)))
-
-                    .splineToConstantHeading(new Vector2d(50, -74), Math.toRadians(0))
-
-
-
-
-
-                    .addTemporalMarker(0, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-
-
-                       .addTemporalMarker(.5, () -> {
-
-                           rightSlide.setVelocity(maxSlideVelocity * .5);
-                           leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                           leftDropdown.setPosition(down + .05);
-                           rightDropdown.setPosition(down + .05);
-
-
-                           rightSlide.setTargetPosition(0);
-                           leftSlide.setTargetPosition(0);
-
-
-
-                       })
-
-                    .addTemporalMarker(3, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(5.36, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(6, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(6.5, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(8.3, () -> {
-
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                         stick.setPosition(stickDown);
                         rightSlide.setVelocity(maxSlideVelocity * .5);
                         leftSlide.setVelocity(maxSlideVelocity * .5);
-
                         leftDropdown.setPosition(down + .05);
                         rightDropdown.setPosition(down + .05);
-
-
                         rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(10.8, () -> {
-
-                        tubeys.setPower(.75);
+                        leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1, () -> {
+                        tubeys.setPower(.82);
                         stick.setPosition(stickUp);
                         leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
+                        rightDropdown.setPosition(down);})
+                     .lineToSplineHeading(new Pose2d(5, -62, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1.75, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(2, () -> {
+                          tubeys.setPower(-.5);;})
+                     .UNSTABLE_addTemporalMarkerOffset(2.25, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(48, -68), Math.toRadians(0))
+                     .lineToSplineHeading(new Pose2d(22, -72, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(-.8, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) maxSlideTicks);
+                            leftSlide.setTargetPosition((int) maxSlideTicks);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .splineToSplineHeading(new Pose2d(-5, -46, Math.toRadians(110)), Math.toRadians(90))
+                     .UNSTABLE_addTemporalMarkerOffset(-0.1, () -> {stick.setPosition(stickUp);})
+                     .waitSeconds(.1)
+
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                            stick.setPosition(stickDown);
+                            rightSlide.setVelocity(maxSlideVelocity * .5);
+                            leftSlide.setVelocity(maxSlideVelocity * .5);
+                            leftDropdown.setPosition(down + .05);
+                            rightDropdown.setPosition(down + .05);
+                            rightSlide.setTargetPosition(0);
+                            leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                            tubeys.setPower(.82);
+                            stick.setPosition(stickUp);
+                            leftDropdown.setPosition(down);
+                            rightDropdown.setPosition(down);})
+                     .lineToSplineHeading(new Pose2d(0, -62, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1.75, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(2, () -> {
+                         tubeys.setPower(-.5);;})
+                     .UNSTABLE_addTemporalMarkerOffset(2.25, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(50, -68), Math.toRadians(0))
+                     .lineToSplineHeading(new Pose2d(12, -72, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(-.8, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) maxSlideTicks);
+                            leftSlide.setTargetPosition((int) maxSlideTicks);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .splineToSplineHeading(new Pose2d(-5, -46, Math.toRadians(110)), Math.toRadians(90))
+                     .UNSTABLE_addTemporalMarkerOffset(-0.1, () -> {stick.setPosition(stickUp);})
+                     .waitSeconds(.1)
+
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                            stick.setPosition(stickDown);
+                            rightSlide.setVelocity(maxSlideVelocity * .5);
+                            leftSlide.setVelocity(maxSlideVelocity * .5);
+                            leftDropdown.setPosition(down + .05);
+                            rightDropdown.setPosition(down + .05);
+                            rightSlide.setTargetPosition(0);
+                            leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                            tubeys.setPower(.82);
+                            stick.setPosition(stickUp);
+                            leftDropdown.setPosition(down);
+                            rightDropdown.setPosition(down);})
+                     .lineToSplineHeading(new Pose2d(0, -62, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1.75, () -> {
+                             stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(2, () -> {
+                         tubeys.setPower(-.5);;})
+                     .UNSTABLE_addTemporalMarkerOffset(2.25, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(58, -68), Math.toRadians(0))
+                     .lineToSplineHeading(new Pose2d(12, -76, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(-.8, () -> {
+                            rightSlide.setPower(.5);
+                            leftSlide.setPower(.5);
+                            rightSlide.setTargetPosition((int) maxSlideTicks);
+                            leftSlide.setTargetPosition((int) maxSlideTicks);
+                            rightDropdown.setPosition(forward);
+                            leftDropdown.setPosition(forward);
+                            stick.setPosition(stickDown);})
+                     .splineToSplineHeading(new Pose2d(0, -50, Math.toRadians(110)), Math.toRadians(90))
+                     .UNSTABLE_addTemporalMarkerOffset(-0.1, () -> {stick.setPosition(stickUp);})
+                     .waitSeconds(.1)
+
+                     .UNSTABLE_addTemporalMarkerOffset(0.4, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(.5, () -> {
+                         stick.setPosition(stickDown);
+                         rightSlide.setVelocity(maxSlideVelocity * .5);
+                         leftSlide.setVelocity(maxSlideVelocity * .5);
+                         leftDropdown.setPosition(down + .05);
+                         rightDropdown.setPosition(down + .05);
+                         rightSlide.setTargetPosition(0);
+                         leftSlide.setTargetPosition(0);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                         tubeys.setPower(.82);
+                         stick.setPosition(stickUp);
+                         leftDropdown.setPosition(down);
+                         rightDropdown.setPosition(down);})
 
 
+                     .lineToSplineHeading(new Pose2d(0, -62, Math.toRadians(180)))
+                     .UNSTABLE_addTemporalMarkerOffset(1, () -> {
+                         stick.setPosition(stickDown);})
+                     .UNSTABLE_addTemporalMarkerOffset(1.5, () -> {
+                         tubeys.setPower(0);;})
+                     .splineToConstantHeading(new Vector2d(91, -68), Math.toRadians(0))
 
+                     .build();
 
-                    })
-
-
-                    .addTemporalMarker(12.66, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(13.8, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(14.3, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(15.8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(16.1, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-                    })
-
-                    .addTemporalMarker(18.6, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(21.46, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-
-                    .build();
-
-            drive.followTrajectory(traj1RW);
-            drive.followTrajectorySequence(traj2RW);
-
-
-
-
-
-
+             drive.followTrajectorySequence(trajRWtest);
 
 
         }
 
-        //TODO Warehouse Red Middle
-        else if (autoStart == 3 && autoMode == 0 && barcodeValue == 1) { //Warehouse Red, deliver freight
-            //drive.followTrajectorySequence(WarehouseRedTop);
-
-            drive.setPoseEstimate(new Pose2d(12, -62, Math.toRadians(270)));
-
-            Trajectory traj1RWM = drive.trajectoryBuilder(new Pose2d(12, -62, Math.toRadians(270)))
-                    //sleep(initialDelay * 1000);
-                    .lineToSplineHeading(new Pose2d(-5, -45, Math.toRadians(110)))
-                    /* .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                     .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))*/
-
-                    .addTemporalMarker(.1, () -> {
-
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .55));
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-
-                    .build();
-
-            TrajectorySequence traj2RWM = drive.trajectorySequenceBuilder(traj1RWM .end())
-
-                    .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)))
-
-//                                .splineToConstantHeading(new Vector2d(0, -70), Math.toRadians(0))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-                    .splineToSplineHeading(new Pose2d(-5, -46, Math.toRadians(110)), Math.toRadians(90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, -72, Math.toRadians(180)))
-
-                    .splineToConstantHeading(new Vector2d(50, -72), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(18, -72, Math.toRadians(180)))
-
-                    .splineToSplineHeading(new Pose2d(-5, -47, Math.toRadians(110)), Math.toRadians(90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, -74, Math.toRadians(180)))
-
-                    .splineToConstantHeading(new Vector2d(50, -74), Math.toRadians(0))
-
-
-
-
-
-                    .addTemporalMarker(0, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-
-
-                    .addTemporalMarker(.5, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(3, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(5.36, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(6, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(6.5, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(8.3, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(10.8, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(12.66, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(13.8, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(14.3, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(15.8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(16.1, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-                    })
-
-                    .addTemporalMarker(18.6, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(21.46, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-
-                    .build();
-
-            drive.followTrajectory(traj1RWM);
-            drive.followTrajectorySequence(traj2RWM);
-
-
-
-
-
-
-
+    else if (autoStart == 3 && autoMode == 1) { //Warehouse Red park
 
         }
-        //TODO Warehouse Red Bottom
-        else if (autoStart == 3 && autoMode == 0 && barcodeValue == 0) { //Warehouse Red, deliver freight
-            //drive.followTrajectorySequence(WarehouseRedTop);
-
-            drive.setPoseEstimate(new Pose2d(12, -62, Math.toRadians(270)));
-
-            Trajectory traj1RWL = drive.trajectoryBuilder(new Pose2d(12, -62, Math.toRadians(270)))
-                    //sleep(initialDelay * 1000);
-                    .lineToSplineHeading(new Pose2d(-5, -45, Math.toRadians(110)))
-                    /* .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                     .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))*/
-
-                    .addTemporalMarker(.1, () -> {
-
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) (maxSlideTicks * .2));
-                        leftSlide.setTargetPosition((int) (maxSlideTicks * .2));
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-
-                    .build();
-
-            TrajectorySequence traj2RWL = drive.trajectorySequenceBuilder(traj1RWL .end())
-
-                    .splineToSplineHeading(new Pose2d(10, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .splineToConstantHeading(new Vector2d(50, -70), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)))
-
-//                                .splineToConstantHeading(new Vector2d(0, -70), Math.toRadians(0))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-//                                .lineToSplineHeading(new Pose2d(5, -32, Math.toRadians(150)))
-                    .splineToSplineHeading(new Pose2d(-5, -46, Math.toRadians(110)), Math.toRadians(90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, -72, Math.toRadians(180)))
-
-                    .splineToConstantHeading(new Vector2d(50, -72), Math.toRadians(0))
-                    .lineToSplineHeading(new Pose2d(18, -72, Math.toRadians(180)))
-
-                    .splineToSplineHeading(new Pose2d(-5, -47, Math.toRadians(110)), Math.toRadians(90))
-                    .waitSeconds(.5)
-//                                .splineToSplineHeading(new Pose2d(15, -70, Math.toRadians(180)), Math.toRadians(-90))
-                    .lineToSplineHeading(new Pose2d(15, -74, Math.toRadians(180)))
-
-                    .splineToConstantHeading(new Vector2d(50, -74), Math.toRadians(0))
-
-
-
-
-
-                    .addTemporalMarker(0, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-
-
-                    .addTemporalMarker(.5, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(3, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(5.36, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(6, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(6.5, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(8.3, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-
-                    })
-
-                    .addTemporalMarker(10.8, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(12.66, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-                    .addTemporalMarker(13.8, () -> {
-                        tubeys.setPower(0);
-
-                    })
-
-                    .addTemporalMarker(14.3, () -> {
-                        rightSlide.setPower(.5);
-                        leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
-                        rightDropdown.setPosition(forward);
-                        leftDropdown.setPosition(forward);
-                        stick.setPosition(stickDown);
-
-
-                    })
-                    .addTemporalMarker(15.8, () -> {
-
-                        stick.setPosition(stickUp);
-
-
-
-                    })
-//
-//
-                    .addTemporalMarker(16.1, () -> {
-
-                        rightSlide.setVelocity(maxSlideVelocity * .5);
-                        leftSlide.setVelocity(maxSlideVelocity * .5);
-
-                        leftDropdown.setPosition(down + .05);
-                        rightDropdown.setPosition(down + .05);
-
-
-                        rightSlide.setTargetPosition(0);
-                        leftSlide.setTargetPosition(0);
-
-
-                    })
-
-                    .addTemporalMarker(18.6, () -> {
-
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
-
-
-
-
-                    })
-
-
-                    .addTemporalMarker(21.46, () -> {
-                        gamepad1.rumbleBlips(1);
-                        gamepad2.rumbleBlips(1);
-
-                        stick.setPosition(stickDown);
-
-                    })
-
-                    .build();
-
-            drive.followTrajectory(traj1RWL);
-            drive.followTrajectorySequence(traj2RWL);
-
-
-
-
-
-
-
-
-        }else if (autoStart == 3 && autoMode == 1) { //Warehouse Red park
-
-        }
-
-
-
-        //TODO Deliver Freight and Park
-
-
-//        drive.setPoseEstimate( new Pose2d(12, 62, Math.toRadians(270)));
-//        drive.followTrajectorySequence(WarehouseBlueTop);
-
-
-
 
 
 

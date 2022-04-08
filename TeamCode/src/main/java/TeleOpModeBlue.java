@@ -82,8 +82,9 @@ public class TeleOpModeBlue extends LinearOpMode {
     private DcMotor brMotor;
 
     
-    private CRServo leftCarousel;
-    private CRServo rightCarousel;
+//    private CRServo leftCarousel;
+//    private CRServo rightCarousel;
+    private DcMotor carousel;
 
     private Servo stick;
     
@@ -128,10 +129,10 @@ public class TeleOpModeBlue extends LinearOpMode {
             0, .1, .2, .3, .4, .5, .6, .7, .85, .9, 1
     };
 
-    private int stickPosition = 0;
+/*    private int stickPosition = 0;
     private final double [] stickValues = {
             0, .1, .2, .3, .4, .5, .6, .7, .85, .9, 1
-    };
+    };*/
 
     private final double stickUp = .4;
     private final double stickDown = 0;
@@ -144,8 +145,21 @@ public class TeleOpModeBlue extends LinearOpMode {
     private boolean autoIntakeActive = false;
 
     private boolean intakeMoving = false;
-    private boolean dropdownMoving = false;
-    private boolean stickMoving = false;
+    //private boolean stickMoving = false;
+
+    int activeDropdown = 5;
+    double[] dropdownValues1 = {0, .4, .5, .6, .7, .8, .9, 1};
+    boolean dropdownMoving = false;
+
+    int activeStick = 4;
+    double[] stickValues = {0, .1, .2, .3, .4};
+    boolean stickMoving = false;
+
+    int activeCapSlide = 2;
+    double[] capSlideValues = {0, maxSlideTicks * .1, maxSlideTicks * .2, maxSlideTicks * .3, maxSlideTicks * .4, maxSlideTicks * .5,
+            maxSlideTicks * .6, maxSlideTicks * .7, maxSlideTicks * .8, maxSlideTicks * .9, maxSlideTicks * 1, maxSlideTicks * 1.1,
+            maxSlideTicks * 1.2, maxSlideTicks * 1.3, maxSlideTicks * 1.4};
+    boolean capSlideMoving = false;
 
 
     public enum AutoIntakeState {
@@ -161,24 +175,13 @@ public class TeleOpModeBlue extends LinearOpMode {
         SLIDE_DOWN,
         MIDDLE_LEVEL,
         SHARED,
-        HIGHER_LEVEL
+        HIGHER_LEVEL,
+        CAPPING
     }
 
     AutoIntakeState autointakeState = AutoIntakeState.DEFAULT_POSITION;
 
-    public enum LiftState {
-        DEFAULT_POSITION,
-        TOP_LEVEL, //DPAD up = top, down = shared, left = middle, right = bottom
-        HORIZONTAL_ROTATION_RIGHT, //circle = rotate right, square = rotate left
-        HORIZONTAL_ROTATION_LEFT,
-        DROP_FREIGHT, //automatically after horizontal rotation
-        SLIDE_DOWN, //automatically after dropping freight, rotate intake to default, LiftState liftState = LiftState.DEFAULT_POSITION;
-        SHARED_RIGHT,
-        SHARED_lEFT,
-        MIDDLE_LEVEL
-    }
 
-    LiftState liftState = LiftState.DEFAULT_POSITION;
 
 
     //method to change gears
@@ -272,20 +275,6 @@ public class TeleOpModeBlue extends LinearOpMode {
 
     }
 
-    public void stickTest() {
-        if (gamepad2.dpad_right && stickPosition > 0 && !stickMoving) {
-            //decrease position
-            stickPosition--;
-            stickMoving = true;
-        } else if (gamepad2.dpad_left && stickPosition < 10 && !stickMoving) {
-            //increase position
-            stickPosition++;
-            stickMoving = true;
-        } else if (!gamepad2.dpad_right && !gamepad2.dpad_left && stickMoving)
-            stickMoving = false;
-
-        stick.setPosition(stickValues[stickPosition]);
-    }
 
  
 
@@ -304,8 +293,9 @@ public class TeleOpModeBlue extends LinearOpMode {
         brMotor = hardwareMap.get(DcMotor.class, "brMotor");
 
         //setup other objects
-        leftCarousel = hardwareMap.get(CRServo.class, "leftCarousel");
-        rightCarousel = hardwareMap.get(CRServo.class, "rightCarousel");
+//        leftCarousel = hardwareMap.get(CRServo.class, "leftCarousel");
+//        rightCarousel = hardwareMap.get(CRServo.class, "rightCarousel");
+        carousel = hardwareMap.get(DcMotor.class, "carousel");
 
         stick = hardwareMap.get(Servo.class, "stick");
 
@@ -394,20 +384,23 @@ public class TeleOpModeBlue extends LinearOpMode {
             if (gamepad1.circle) {
                 //spinnyTime.reset();
                 //spinny.setPower(-(Math.pow(10, (.5 * spinnyTime.seconds()) - .5)));
-                leftCarousel.setPower(-1);
-                rightCarousel.setPower(-1);
+//                leftCarousel.setPower(-1);
+//                rightCarousel.setPower(-1);
+                carousel.setPower(-.4);
 
             } else if (gamepad1.cross) {
                 //spinny.setPower((Math.pow(10, (.5 * spinnyTime.seconds()) - .5)));
-                leftCarousel.setPower(1);
-                rightCarousel.setPower(1);
+//                leftCarousel.setPower(1);
+//                rightCarousel.setPower(1);
+                carousel.setPower(.4);
 
             } /*else if (!gamepad1.cross || !gamepad1.circle) {
                 *//*spinnyTime.reset();*//*
                 carouselServo.setPower(0);
             } */else {
-                leftCarousel.setPower(0);
-                rightCarousel.setPower(0);
+//                leftCarousel.setPower(0);
+//                rightCarousel.setPower(0);
+                carousel.setPower(0);
             }
 
 
@@ -421,28 +414,7 @@ public class TeleOpModeBlue extends LinearOpMode {
                 frMotor.setPower((gearValues[activeGear] * ((gamepad1LY + gamepad1LX)) + gearValues[activeGear] * botRotationSpeed * gamepad1RX) * wheelMaxVelocity);
                 blMotor.setPower((gearValues[activeGear] * ((gamepad1LY + gamepad1LX)) - gearValues[activeGear] * botRotationSpeed * gamepad1RX) * wheelMaxVelocity);
                 brMotor.setPower((gearValues[activeGear] * ((gamepad1LY - gamepad1LX)) + gearValues[activeGear] * botRotationSpeed * gamepad1RX) * wheelMaxVelocity);
-            } else if (gamepad1.left_bumper && !gamepad1.right_bumper && Math.abs(gamepad1LY) < .05 && Math.abs(gamepad1LX) < .05 && Math.abs(gamepad1RX) < .05) {
-                flMotor.setPower(.3 * wheelMaxVelocity);
-                frMotor.setPower(-.3 * wheelMaxVelocity);
-                blMotor.setPower(.3 * wheelMaxVelocity);
-                brMotor.setPower(-.3 * wheelMaxVelocity);
-            } else if (gamepad1.right_bumper && !gamepad1.left_bumper && Math.abs(gamepad1LY) < .05 && Math.abs(gamepad1LX) < .05 && Math.abs(gamepad1RX) < .05) {
-                flMotor.setPower(-.3 * wheelMaxVelocity);
-                frMotor.setPower(.3 * wheelMaxVelocity);
-                blMotor.setPower(-.3 * wheelMaxVelocity);
-                brMotor.setPower(.3 * wheelMaxVelocity);
-            } else if (gamepad1.dpad_up) {
-                flMotor.setPower((-.15 * wheelMaxVelocity));
-                frMotor.setPower((-.15 * wheelMaxVelocity));
-                blMotor.setPower((-.15 * wheelMaxVelocity));
-                brMotor.setPower((-.15 * wheelMaxVelocity));
-
-            } else if (gamepad1.dpad_down) {
-                flMotor.setPower((.15 * wheelMaxVelocity));
-                frMotor.setPower((.15 * wheelMaxVelocity));
-                blMotor.setPower((.15 * wheelMaxVelocity));
-                brMotor.setPower((.15 * wheelMaxVelocity));
-            } else {
+            }  else {
                 flMotor.setPower(0);
                 frMotor.setPower(0);
                 blMotor.setPower(0);
@@ -491,10 +463,65 @@ public class TeleOpModeBlue extends LinearOpMode {
                     } else if (gamepad2.circle && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
                         autoIntakeTime.reset();
                         autointakeState = AutoIntakeState.HIGHER_LEVEL;
+                    } else if (gamepad1.dpad_up && autointakeState == AutoIntakeState.DEFAULT_POSITION) {
+                        gamepad1.rumbleBlips(1);
+                        gamepad2.rumbleBlips(1);
+                        autointakeState = AutoIntakeState.CAPPING;
+
                     }
 
                     break;
 
+                case CAPPING:
+
+                    rightSlide.setVelocity(maxSlideVelocity * .3);
+                    leftSlide.setVelocity(maxSlideVelocity * .3);
+
+
+                    leftDropdown.setPosition(dropdownValues1[activeDropdown]);
+                    rightDropdown.setPosition(dropdownValues1[activeDropdown]);
+                    stick.setPosition(stickValues[activeStick]);
+                    leftSlide.setTargetPosition((int) capSlideValues[activeCapSlide]);
+                    rightSlide.setTargetPosition((int) capSlideValues[activeCapSlide]);
+
+
+                    if (gamepad1.dpad_up && !dropdownMoving && activeDropdown < dropdownValues1.length - 1) {
+                        dropdownMoving = true;
+                        activeDropdown++;
+                    } else if (gamepad1.dpad_down && !dropdownMoving && activeDropdown > 0) {
+                        dropdownMoving = true;
+                        activeDropdown--;
+                    } else if (!gamepad1.dpad_up && !gamepad1.dpad_down) {
+                        dropdownMoving = false; }
+
+                    if (gamepad1.right_bumper && !stickMoving && activeStick < stickValues.length - 1) {
+                        stickMoving = true;
+                        activeStick++;
+                    } else if (gamepad1.left_bumper && !stickMoving && activeStick > 0) {
+                        stickMoving = true;
+                        activeStick--;
+                    } else if (!gamepad1.right_bumper && !gamepad1.left_bumper) {
+                        stickMoving = false;
+                    }
+
+                    if (gamepad2.dpad_up && !capSlideMoving && activeCapSlide < capSlideValues.length - 1) {
+                        capSlideMoving = true;
+                        activeCapSlide++;
+                    } else if (gamepad2.dpad_down && !capSlideMoving && activeCapSlide > 0) {
+                        capSlideMoving = true;
+                        activeCapSlide--;
+                    } else if (!gamepad2.dpad_up && !gamepad2.dpad_down) {
+                        capSlideMoving = false;
+                    }
+
+                    if (gamepad1.ps) {
+                        autoIntakeTime.reset();
+                        autointakeState = AutoIntakeState.SLIDE_DOWN;
+                    }
+
+
+
+                    break;
 
 
 
@@ -507,8 +534,8 @@ public class TeleOpModeBlue extends LinearOpMode {
                     if (autoIntakeTime.seconds() > 0) {
                         rightSlide.setPower(.5);
                         leftSlide.setPower(.5);
-                        rightSlide.setTargetPosition((int) maxSlideTicks);
-                        leftSlide.setTargetPosition((int) maxSlideTicks);
+                        rightSlide.setTargetPosition((int) (maxSlideTicks * 1.05));
+                        leftSlide.setTargetPosition((int) (maxSlideTicks * 1.05));
                         rightDropdown.setPosition(forward);
                         leftDropdown.setPosition(forward);
 
@@ -631,6 +658,11 @@ public class TeleOpModeBlue extends LinearOpMode {
                     break;
 
                 case SLIDE_DOWN:
+                    activeDropdown = 5;
+                    activeStick = 4;
+                    activeCapSlide = 2;
+
+
                     rightSlide.setVelocity(maxSlideVelocity * .5);
                     leftSlide.setVelocity(maxSlideVelocity * .5);
 
@@ -645,11 +677,12 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                     /*slideRotation.setPosition(middle);*/
                     if (autoIntakeTime.seconds() > .5)
+                        stick.setPosition(stickUp);
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
                     break;
                 case INTAKE_ACTIVE:
 
-                    tubeys.setPower(.75);
+                    tubeys.setPower(.82);
                     stick.setPosition(stickUp);
                     leftDropdown.setPosition(down);
                     rightDropdown.setPosition(down);
@@ -659,7 +692,7 @@ public class TeleOpModeBlue extends LinearOpMode {
 
                     autoIntakeTime.reset();
 
-                    if (!gamepad2.right_bumper && autoIntakeTime.seconds() < .75) {
+                    if (!gamepad2.right_bumper /*&& autoIntakeTime.seconds() < .75*/) {
 
 
 //                        leftDropdown.setPosition(dropdownDown);
@@ -667,7 +700,7 @@ public class TeleOpModeBlue extends LinearOpMode {
                         stick.setPosition(stickDown);
 
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
-                    } else if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2.85 && autoIntakeTime.seconds() < .5) {
+                    } else if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2.85 /*&& autoIntakeTime.seconds() < .5*/) {
                         gamepad1.rumbleBlips(1);
                         gamepad2.rumbleBlips(1);
 
@@ -680,18 +713,22 @@ public class TeleOpModeBlue extends LinearOpMode {
                     }
                     break;
                 case ACTIVE_INTAKE_NO_SENSOR:
+                    tubeys.setPower(.82);
+                    stick.setPosition(stickUp);
+                    leftDropdown.setPosition(down);
+                    rightDropdown.setPosition(down);
 
-//                    leftDropdown.setPosition(dropdownDown);
-//                    rightDropdown.setPosition(dropdownDown);
+                /*    leftDropdown.setPosition(dropdownDown);
+                    rightDropdown.setPosition(dropdownDown);*/
+
                     autoIntakeTime.reset();
-                    if (gamepad2.right_trigger == 0 && autoIntakeTime.seconds() < .75) {
-                        tubeys.setPower(.75);
-                        stick.setPosition(stickUp);
-                        leftDropdown.setPosition(down);
-                        rightDropdown.setPosition(down);
+
+                    if (!gamepad2.right_bumper /*&& autoIntakeTime.seconds() < .75*/) {
+
 
 //                        leftDropdown.setPosition(dropdownDown);
 //                        rightDropdown.setPosition(dropdownDown);
+                        stick.setPosition(stickDown);
 
                         autointakeState = AutoIntakeState.DEFAULT_POSITION;
                     }
@@ -787,9 +824,15 @@ public class TeleOpModeBlue extends LinearOpMode {
             telemetry.addData("Slide Target Position", rightSlide.getCurrentPosition());
             telemetry.addData("Slide Position", slideLevel[slidePosition]);
             telemetry.addData("gamepad2 state", autointakeState);
-            telemetry.addData("dropdownposition", dropdownPosition);
-            telemetry.addData("stickvalue", stickPosition);
+            telemetry.addData("dropdownposition", leftDropdown.getPosition());
+
             telemetry.addData("stickposition", stick.getPosition());
+            telemetry.addData("Robot State", autointakeState);
+            telemetry.addData("activeDropdown", activeDropdown);
+            telemetry.addData("activecapslide", activeCapSlide);
+
+
+
 
 
             telemetry.update();

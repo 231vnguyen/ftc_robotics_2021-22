@@ -18,7 +18,7 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-@Disabled
+//@Disabled
 @Autonomous(name = "BarcodePipeline")
 
 public class BarcodePipeline extends LinearOpMode {
@@ -59,7 +59,7 @@ public class BarcodePipeline extends LinearOpMode {
                  * For a rear facing camera or a webcam, rotation is defined assuming the camera is facing
                  * away from the user.
                  */
-                webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+                webcam.startStreaming(320, 240, OpenCvCameraRotation.UPSIDE_DOWN);
             }
 
             @Override
@@ -121,10 +121,10 @@ public class BarcodePipeline extends LinearOpMode {
          * The core values which define the location and size of the sample regions
          * If you want to enlarge or reduce the size of the regions, it should be done here.
          */
-        static final Point REGION1_TOPMIDDLE_ANCHOR_POINT = new Point(110,45);
-        static final Point REGION2_TOPMIDDLE_ANCHOR_POINT = new Point(255,45);
+        static final Point REGION1_TOPMIDDLE_ANCHOR_POINT = new Point(15,45);
+        static final Point REGION2_TOPMIDDLE_ANCHOR_POINT = new Point(175,45);
 //        static final Point REGION3_TOPMIDDLE_ANCHOR_POINT = new Point(253,98);
-        static final int REGION_WIDTH = 60;
+        static final int REGION_WIDTH = 120;
         static final int REGION_HEIGHT = 40;
 
         /*
@@ -180,7 +180,7 @@ public class BarcodePipeline extends LinearOpMode {
         void inputToCb(Mat input)
         {
             Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_RGB2YCrCb);
-            Core.extractChannel(YCrCb, Cb, 2);
+            Core.extractChannel(YCrCb, Cb, 1);
         }
 
         @Override
@@ -304,7 +304,27 @@ public class BarcodePipeline extends LinearOpMode {
              * figure out which sample region that value was from
              */
             ////TODO if (Math.abs(avg1-avg2) > 15 && avg2 > avg1) then RIGHT
-            if(Math.abs(avg1-avg2) > 10 && avg2 > avg1) // Was it from region 1?
+            if(Math.abs(avg1-avg2) >= 6 && avg2 > avg1) // Was it from region 1?
+            {
+                position = BarcodePosition.MIDDLE; // Record our analysis
+
+                /*
+                 * Draw a solid rectangle on top of the chosen region.
+                 * Simply a visual aid. Serves no functional purpose.
+                 */
+
+
+                Imgproc.rectangle(
+                        input, // Buffer to draw on
+                        region1_pointA, // First point which defines the rectangle
+                        region1_pointB, // Second point which defines the rectangle
+                        BLUE, // The color the rectangle is drawn in
+                        -1); // Negative thickness means solid fill
+
+
+            }
+            //TODO if (Math.abs(avg1-avg2) > 15 && avg1 > avg2) then MIDDLE
+            else if(Math.abs(avg1-avg2) >= 6 && avg1 > avg2) // Was it from region 2?
             {
                 position = BarcodePosition.RIGHT; // Record our analysis
 
@@ -319,26 +339,10 @@ public class BarcodePipeline extends LinearOpMode {
                         BLUE, // The color the rectangle is drawn in
                         -1); // Negative thickness means solid fill
 
-            }
-            //TODO if (Math.abs(avg1-avg2) > 15 && avg1 > avg2) then MIDDLE
-            else if(Math.abs(avg1-avg2) > 10 && avg1 > avg2) // Was it from region 2?
-            {
-                position = BarcodePosition.MIDDLE; // Record our analysis
 
-                /*
-                 * Draw a solid rectangle on top of the chosen region.
-                 * Simply a visual aid. Serves no functional purpose.
-                 */
-
-                Imgproc.rectangle(
-                        input, // Buffer to draw on
-                        region1_pointA, // First point which defines the rectangle
-                        region1_pointB, // Second point which defines the rectangle
-                        BLUE, // The color the rectangle is drawn in
-                        -1); // Negative thickness means solid fill
             }
             //TODO if (Math.abs(avg1-avg2) < 15) then LEFT
-            else if(Math.abs(avg1-avg2) < 10) // Was it from region 3?
+            else if(Math.abs(avg1-avg2) < 6) // Was it from region 3?
             {
                 position = BarcodePosition.LEFT; // Record our analysis
 
